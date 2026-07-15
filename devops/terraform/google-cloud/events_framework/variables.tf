@@ -1,0 +1,13 @@
+variable "config" {
+  type = object({
+    credentials_path = string
+    project_id       = string
+    region           = string
+    definitions_path = string
+  })
+}
+
+variable "project" {
+  type = string
+  default = null
+}

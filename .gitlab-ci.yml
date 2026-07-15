@@ -1,0 +1,35 @@
+stages:
+  - label-checker
+  - terraform-plan
+  - terraform-apply
+
+variables:
+    WORKING_DIRECTORY: "./"
+    DEPLOYER_SERVICE_ACCOUNT: ${DEPLOYER_SERVICE_ACCOUNT_ROOT}
+    TERRAFORM_PATH: "devops/terraform/google-cloud/gcp_project_factory"
+    BACKEND_PATH: "../../../../platforms/variables/backend.hcl"
+    TFVARS_PATH: "../../../../platforms/variables/terraform.tfvars.json"
+    BIND_SERVICE_ACCOUNTS: "true"
+    SERVICE_ACCOUNTS_ROLES: "roles/owner roles/editor"
+    DEFINITIONS_PATH: "platforms/definitions/project.json"
+
+.main-rules:
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
+
+include:
+  # En el repo original estos jobs vivían en un repo GitLab compartido
+  # (`project: <org>/DevOps`). Aquí se usan los mirrors locales para que el
+  # repo sea autocontenido. Sustituye por tu `project:` compartido si aplica.
+  - local: 'devops/ci-cd/terraform/.gitlab-plan.yml'
+  - local: 'devops/ci-cd/terraform/.gitlab-applyer.yml'
+  - '.gitlab-scripts.yml'
+
+label-checker:
+  stage: label-checker
+  script:
+    - !reference [.check-json-elements, script]
+  allow_failure: false
+
+terraform-apply:
+  rules: !reference [.main-rules, rules]

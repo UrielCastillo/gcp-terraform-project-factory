@@ -1,0 +1,87 @@
+{
+    "folders": [
+        {
+            "name": "demo",
+            "parent": "folder",
+            "parent_id": "100000000001"
+        },
+        {
+            "name": "platform",
+            "parent": "folder",
+            "parent_id": "100000000001"
+        },
+        {
+            "name": "analytics",
+            "parent": "folder",
+            "parent_id": "100000000002"
+        }
+    ],
+    "projects": [
+        {
+            "name": "demo-app-dev",
+            "folder_name": "demo",
+            "auto_create_network": "false",
+            "billing_account": "000000-000000-000000",
+            "labels": {
+                "environment": "dev",
+                "bu": "demo"
+            }
+        },
+        {
+            "name": "demo-app-prod",
+            "folder_name": "demo",
+            "auto_create_network": "false",
+            "billing_account": "000000-000000-000000",
+            "labels": {
+                "environment": "prod",
+                "bu": "demo"
+            }
+        },
+        {
+            "name": "data-platform-dev",
+            "folder_name": "platform",
+            "auto_create_network": "false",
+            "billing_account": "000000-000000-000000",
+            "labels": {
+                "environment": "dev",
+                "bu": "platform"
+            }
+        }
+    ],
+    "project_services": [
+        {
+            "project_id": "demo-app-dev",
+            "gcp_service_list": [
+                "serviceusage.googleapis.com",
+                "cloudresourcemanager.googleapis.com",
+                "run.googleapis.com"
+            ]
+        },
+        {
+            "project_id": "demo-app-prod",
+            "gcp_service_list": [
+                "serviceusage.googleapis.com",
+                "cloudresourcemanager.googleapis.com",
+                "run.googleapis.com"
+            ]
+        },
+        {
+            "project_id": "data-platform-dev",
+            "gcp_service_list": [
+                "serviceusage.googleapis.com",
+                "cloudresourcemanager.googleapis.com",
+                "bigquery.googleapis.com"
+            ]
+        }
+    ],
+    "service_accounts": [
+        {
+            "name": "main-demo-app",
+            "project_id": "demo-app-dev"
+        },
+        {
+            "name": "main-data-platform",
+            "project_id": "data-platform-dev"
+        }
+    ]
+}

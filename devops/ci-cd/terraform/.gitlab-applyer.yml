@@ -1,0 +1,43 @@
+stages:
+  - terraform-apply
+
+variables:
+  DEPLOYER_SERVICE_ACCOUNT: "your-service-account"
+  TERRAFORM_PATH: "your-terraform-files-path"
+  BACKEND_PATH: "your-backend-path"
+  TFVARS_PATH: "your-tfvars-path"
+  BIND_SERVICE_ACCOUNTS: "boolean-for-sa-binding"
+  SERVICE_ACCOUNTS_ROLES: "roles-to-sa-bind"
+
+terraform-apply:
+  image: hashicorp/terraform:latest
+  tags:
+    - gcp-runner
+  stage: terraform-apply
+  script:
+    - if [ -n "$CI_COMMIT_TAG" ]; then TAG=$CI_COMMIT_TAG; else TAG=$CI_COMMIT_SHORT_SHA; fi
+    - mkdir credentials
+    - cd credentials
+    - cp $DEPLOYER_SERVICE_ACCOUNT credentials.json
+    - cd ..
+    - current_path=$(pwd)
+    - |
+      cd ${current_path}/${TERRAFORM_PATH}
+      terraform init  -backend-config=${BACKEND_PATH}
+      terraform apply  -var-file=${TFVARS_PATH} -auto-approve
+      if [ "$BIND_SERVICE_ACCOUNTS" = "true" ]; then
+        echo "Adding roles to generated services accounts..."
+        SA_EMAILS=$(terraform output -json generated_service_accounts) 
+        echo "$SA_EMAILS" | jq -c 'to_entries[]' | while read -r entry; do
+          KEY=$(echo "$entry" | jq -r '.key')
+          EMAIL=$(echo "$entry" | jq -r '.value.email')
+          PROJECT=$(echo "$entry" | jq -r '.value.project')
+          
+          for role in $sa_roles; do
+            gcloud projects add-iam-policy-binding $PROJECT --member="""serviceAccount:$EMAIL""" --role="""$ROLE"""
+          done
+
+        done
+        echo "All done..."
+      fi
+  allow_failure: false

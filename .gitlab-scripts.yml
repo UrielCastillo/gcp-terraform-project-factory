@@ -1,0 +1,34 @@
+.check-json-elements:
+  script:
+    - apt-get update
+    - apt-get install -y jq
+    - |
+      DIFF_OUTPUT=$(git diff HEAD^:$DEFINITIONS_PATH HEAD:$DEFINITIONS_PATH --unified=0)
+      
+      if [[ -n "$DIFF_OUTPUT" ]]; then
+        echo "New elements added to $FILENAME:"
+        echo "$DIFF_OUTPUT"
+
+        ADDED_ELEMENTS=$(echo "$DIFF_OUTPUT" | awk '/^\+/ {for (i=1;i<=NF;i++) {if ($i ~ /"name":/){print $(i+1)} }}' | tr -d '"' | tr -d ',')
+        echo "ADDED ELEMENTS"
+        echo "$ADDED_ELEMENTS"
+        
+        ALL_PROJECTS_VALID=true
+        for ELEMENT in $ADDED_ELEMENTS; do
+          if [[ $(cat "$DEFINITIONS_PATH" | jq -r ".projects[] | select(.name == \"$ELEMENT\") | .labels | has(\"bu\") and has(\"environment\")") == "false" ]]; then
+            ALL_PROJECTS_VALID=false
+            echo "Project '$ELEMENT' is missing 'bu' or 'environment' label."
+            break
+          fi
+        done
+
+        if [[ "$ALL_PROJECTS_VALID" == "true" ]]; then
+          echo "All new projects have both 'bu' and 'environment' labels."
+        else
+          exit 1
+        fi
+
+      else
+        echo "No differences found between the current and previous versions of $DEFINITIONS_PATH"
+      fi
+  allow_failure: false

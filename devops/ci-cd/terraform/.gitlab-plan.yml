@@ -1,0 +1,27 @@
+stages:
+  - terraform-plan
+
+
+variables:
+  DEPLOYER_SERVICE_ACCOUNT: "your-service-account"
+  TERRAFORM_PATH: "your-terraform-files-path"
+  BACKEND_PATH: "your-backend-path"
+  TFVARS_PATH: "your-tfvars-path"
+
+terraform-plan:
+  image: hashicorp/terraform:latest
+  tags:
+    - gcp-runner
+  stage: terraform-plan
+  script:
+    - if [ -n "$CI_COMMIT_TAG" ]; then TAG=$CI_COMMIT_TAG; else TAG=$CI_COMMIT_SHORT_SHA; fi
+    - mkdir credentials
+    - cd credentials
+    - cp $DEPLOYER_SERVICE_ACCOUNT credentials.json
+    - cd ..
+    - current_path=$(pwd)
+    - |
+      cd ${current_path}/${TERRAFORM_PATH}
+      terraform init -backend-config=${BACKEND_PATH}
+      terraform plan -var-file=${TFVARS_PATH}
+  allow_failure: false

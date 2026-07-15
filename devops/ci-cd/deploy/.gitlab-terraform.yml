@@ -1,0 +1,46 @@
+stages:
+  - terraform
+  - ci-status
+
+include:
+  - project: 'your-org/DevOps'
+    file: 'ci-cd/status/.gitlab-status.yml'
+
+variables:
+  DEPLOYER_SERVICE_ACCOUNT: "your-service-account"
+  PROJECT_ID: "your-project-to-deploy"
+  BUCKET_PROJECT: "your-bucket_state"
+  BUCKET_PREFIX: "your-bucket-prefix"
+  TERRAFORM_PATHS: "terraform-paths-to-apply"
+  SERVICE_ACCOUNT: "service-account-for-cloud-run"
+  CLOUD_RUN_SERVICE_NAME: "your-service-name"
+
+terraform:
+  image: hashicorp/terraform:latest
+  tags:
+    - gcp-runner
+  stage: terraform
+  services:
+    - name: curlimages/curl:latest
+      alias: curl
+  before_script:
+    - BUILD_STATUS=running BUILD_KEY=push
+    - !reference [.build_status, script]
+  script:
+    - if [ -n "$CI_COMMIT_TAG" ]; then TAG=$CI_COMMIT_TAG; else TAG=$CI_COMMIT_SHORT_SHA; fi
+    - mkdir credentials
+    - cd credentials
+    - cp $DEPLOYER_SERVICE_ACCOUNT credentials.json
+    - cd ..
+    - current_path=$(pwd)
+    - |
+      for tf_path in $TERRAFORM_PATHS
+      do
+        cd ${current_path}/devops/terraform/google-cloud/${tf_path}
+        terraform init -backend-config=${current_path}/terraform/${tf_path}/var/backend.hcl -backend-config=bucket=$BUCKET_PROJECT -backend-config=prefix=$BUCKET_PREFIX
+        terraform apply -var-file=${current_path}/terraform/${tf_path}/var/terraform.tfvars.json -var="cloud_run_name=$CLOUD_RUN_SERVICE_NAME" -var="service_account=$SERVICE_ACCOUNT" -var="project=$PROJECT_ID" -var="dockertag=$REGISTRY_HOST/$ARTIFACT_PROJECT_ID/$REPOSITORY_NAME/$IMAGE_NAME:$TAG" -auto-approve
+      done
+    - BUILD_STATUS=passed BUILD_KEY=push
+    - !reference [.build_status, script]
+  artifacts: !reference [.build_status, artifacts]
+  allow_failure: false
